@@ -1,0 +1,489 @@
+<!DOCTYPE HTML>
+<!--
+	Phantom by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>NFT Analysis Technicals</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+	</head>
+	<body class="is-preload">
+		<!-- Wrapper -->
+			<div id="wrapper">
+
+				<!-- Header -->
+					<header id="header">
+						<div class="inner">
+
+							<!-- Nav -->
+								<nav>
+									<ul>
+										<li><a href="#menu">menu</a></li>
+									</ul>
+								</nav>
+
+						</div>
+					</header>
+
+				<!-- Menu -->
+					<nav id="menu">
+						<h2>menu</h2>
+						<ul>
+							<li><a href="https://pjmuneath.github.io">home</a></li>
+							<li><a href="/projects/">projects</a></li>
+							<li><a href="/resume/">resume</a></li>
+							<li><a href="/contact/">contact</a></li>
+						</ul>
+					</nav>
+
+				<!-- Main -->
+					<div id="main">
+						<div class="inner">
+							<h1>nft analysis technicals</h1>
+									<h2>related links</h2>
+										<ul class="alt">
+											<li><a href="/projects/nft-eda">project deliverable</a></li>
+											<li><a href="https://dune.com/pjmun/nft-eda">interactive dashboard (dune)</a></li>
+										</ul>
+									<h2>initial insights</h2>
+									<p>Data Source: <i>Dune Analytics</i>.</p>
+									<p>Dune Analytics retrieves and indexes public blockchain data. Within Dune and using SQL, one can create queries to build tables for further analysis. All queries and visualizations for this project are available and interactive on Dune, linked above.</p>
+									<p>One of the first insights I wanted to grab were unique holder count and monthly volume to see trends in sector growth and relevancy.</p>
+									<pre><code>WITH unique_nft_holders AS (
+    SELECT 
+        date_trunc('month', block_date) AS month, 
+        buyer 
+    FROM 
+        nft.trades
+    WHERE
+        block_date >= TIMESTAMP '2021-01-01' AND block_time < TIMESTAMP '2025-02-01'
+    GROUP BY 
+        date_trunc('month', block_date), 
+        buyer
+)
+SELECT 
+    month, 
+    COUNT(DISTINCT buyer) AS unique_holders_count
+FROM 
+    unique_nft_holders
+GROUP BY 
+    month
+ORDER BY 
+    month ASC;</code></pre>
+									<p>This query counts the distinct wallets that hold at least one NFT, grouped monthly. I set a constraint to end at February 1, 2025, throughout the project as public blockchain data is 24/7 and having the data continuously run while the grouping is monthly would lead to misleading visualizations. I also set a constraint to begin at January 1, 2021, throughout the project as public NFT blockchain data begins then and to create continuity in comparison visuals.</p>
+									<p>The resulting visualization from the query, in an area chart form:</p>
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart1.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+									<p>The query for monthly volume:</p>
+									<pre><code>SELECT
+    date_trunc('month', block_date) AS month,
+    source,
+    SUM(amount_usd) AS total_volume
+FROM (
+    SELECT block_date, amount_usd, block_time, 'blur' AS source
+    FROM blur.trades
+    WHERE block_time >= TIMESTAMP '2021-01-01' AND block_time < TIMESTAMP '2025-02-01'
+    
+    UNION ALL
+    
+    SELECT block_date, amount_usd, block_time, 'opensea' AS source
+    FROM opensea.trades
+    WHERE block_time >= TIMESTAMP '2021-01-01' AND block_time < TIMESTAMP '2025-02-01'
+) AS combined_trades
+GROUP BY
+    date_trunc('month', block_date), source
+ORDER BY
+    month ASC, source ASC;</code></pre>
+									<p>This query sums the volume of trades in two of the most prominent NFT marketplaces today, OpenSea and Blur, and groups them by month. By seeing the individual volumes of each major marketplace, we can see if volume trends are sector-wide or relevant to select marketplaces.</p>
+									<p>The resulting visualization, in a line graph form:</p>
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart2.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+									<p>I used a logarithmic scaling for this graph to get a better view of the volume action. We can see that volume trends are sector-wide (OpenSea and Blur account for roughly 90% of NFT marketplace volume), so we don't need to look at specific marketplaces anymore.</p>
+									<h2>market comparisons</h2>
+									<p>Next, I wanted to compare the NFT market to DEX market. I did so by making a query for monthly volume for both.</p>
+									<p>The query for NFT monthly volume:</p>
+									<pre><code>SELECT
+    date_trunc('month', block_date) AS month,
+    SUM(amount_usd) AS total_volume
+FROM 
+    nft.trades
+    WHERE block_time >= TIMESTAMP '2021-01-01' AND block_time < TIMESTAMP '2025-02-01'
+GROUP BY
+    date_trunc('month', block_date)
+ORDER BY
+    month ASC;</code></pre>
+									<p>This query sums each trade to calculate total volume and is grouped monthly.</p>
+									<p>The query for DEX monthly volume:</p>
+									<pre><code>SELECT
+    date_trunc('month', block_date) AS month,
+    SUM(amount_usd) AS total_volume
+FROM 
+    dex.trades
+    WHERE block_time >= TIMESTAMP '2021-01-01' AND block_time < TIMESTAMP '2025-02-01'
+GROUP BY
+    date_trunc('month', block_date)
+ORDER BY
+    month ASC;</code></pre>
+									<p>The resulting visualizations, in line graph forms:</p>
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart4.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+									<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart3.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+									<p>With these visualizations, we can see the 2021-2022 run ups for each sector, and I wanted to zoom in on those to get a closer look at the volume action on a week by week basis.</p>
+									<p>The query for 2021-2022 NFT weekly volume:</p>
+									<pre><code>SELECT
+    date_trunc('week', block_date) AS week,
+    SUM(amount_usd) AS total_volume
+FROM 
+    nft.trades
+    WHERE block_time >= TIMESTAMP '2021-01-01' AND block_time < TIMESTAMP '2022-02-07'
+GROUP BY
+    date_trunc('week', block_date)
+ORDER BY
+    week ASC;</code></pre>
+									<p>The query for 2021-2022 DEX weekly volume:</p>
+									<pre><code>SELECT
+    date_trunc('week', block_date) AS week,
+    SUM(amount_usd) AS total_volume
+FROM 
+    dex.trades
+    WHERE block_time >= TIMESTAMP '2021-01-01' AND block_time < TIMESTAMP '2022-02-07'
+GROUP BY
+    date_trunc('week', block_date)
+ORDER BY
+    week ASC;</code></pre>
+									<p>Their resulting visualizations, in a bar chart form:</p>
+									<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart6.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart5.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+									<p>From these visualizations, we can see just how DEX volume precedes NFT volume.</p>
+									<p>From the monthly volume line graphs, there were some other points to note, including the fact that DEX monthly volume currently sits right below all time highs, and NFT monthly volume seems to be making a technical bottom. To get a closer look at the volume action of recent, I did queries to gather weekly volume for both markets starting in September 2024, when the months-long consolidation period ended and a trend reversal was formed.</p>
+									<p>The query for 9/24 - 1/25 NFT weekly volume:</p>
+									<pre><code>SELECT
+    date_trunc('week', block_date) AS week,
+    SUM(amount_usd) AS total_volume
+FROM 
+    nft.trades
+    WHERE block_time >= TIMESTAMP '2024-08-26' AND block_time < TIMESTAMP '2025-02-03'
+GROUP BY
+    date_trunc('week', block_date)
+ORDER BY
+    week ASC;</code></pre>
+									<p>I set a constraint to begin and end at August 26, 2024 and February 3, 2025 to make sure to get all days of September and January, respectively, since it is grouped weekly.</p>
+									<p>The query for 9/24 - 1/25 DEX weekly volume:</p>
+									<pre><code>SELECT
+    date_trunc('week', block_date) AS week,
+    SUM(amount_usd) AS total_volume
+FROM 
+    dex.trades
+    WHERE block_time >= TIMESTAMP '2024-08-26' AND block_time < TIMESTAMP '2025-02-03'
+GROUP BY
+    date_trunc('week', block_date)
+ORDER BY
+    week ASC;</code></pre>
+									<p>The resulting visualizations, in bar chart form:</p>
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart8.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+
+												<span class="image fit">
+													<img src="images/Chart7.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+									<p>From here, we can see that DEX weekly volume as of recent is steadily climbing. If it continues to do so, new monthly ATHs will be formed in the coming months. We can also see the impact of the 2024 US presidential election result, with the weeks following the result leading to a significant bump up in volume in DEX markets, confirming the uptrend, and a blow-off top run up for NFT markets.</p>
+									<p>Next, I wanted to get a sense of NFT volume as a proportion of total volume (NFT + DEX markets).</p>
+									<pre><code>WITH dex AS (
+    SELECT
+        date_trunc('month', block_date) AS month,
+        SUM(amount_usd) AS dex_volume
+    FROM dex.trades
+    WHERE block_time >= TIMESTAMP '2021-01-01'
+      AND block_time < TIMESTAMP '2025-02-01'
+    GROUP BY 1
+),
+nft AS (
+    SELECT
+        date_trunc('month', block_date) AS month,
+        SUM(amount_usd) AS nft_volume
+    FROM nft.trades
+    WHERE block_time >= TIMESTAMP '2021-01-01'
+      AND block_time < TIMESTAMP '2025-02-01'
+    GROUP BY 1
+)
+SELECT
+    d.month,
+    d.dex_volume,
+    n.nft_volume,
+    ROUND((d.dex_volume / (d.dex_volume + n.nft_volume)) * 100, 2) AS dex_volume,
+    ROUND((n.nft_volume / (d.dex_volume + n.nft_volume)) * 100, 2) AS nft_volume
+FROM dex d
+JOIN nft n ON d.month = n.month
+ORDER BY d.month ASC;</code></pre>
+									<p>This query gathers monthly volume for both markets as a proportion.</p>
+									<p>The resulting visualization:</p>
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart9.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+									<p>Here, we can see that NFT volume doesn't exceed 1% of total volume except in times of relevancy and mania.</p>
+									<h2>health within the sector</h2>
+									<p>If DEX monthly volumes reach new all time highs, then NFTs are likely to follow suit with a lag. I wanted to see which collections within the NFT ecosystem are maintaining strength through sustained high volume through the years despite poor overall sector health, as those collections are likely to continue that strength should the sector regain relevancy.</p>
+									<pre><code>WITH monthly_volume AS (
+    SELECT 
+        date_trunc('month', block_date) AS month,
+        collection,
+        SUM(amount_usd) AS volume
+    FROM 
+        nft.trades
+    WHERE 
+        block_date >= TIMESTAMP '2021-01-01'
+      AND block_time < TIMESTAMP '2025-02-01'
+    GROUP BY 
+        date_trunc('month', block_date), 
+        collection
+)
+SELECT 
+    collection,
+    month,
+    volume
+FROM 
+    monthly_volume
+WHERE 
+    volume > 50000000
+ORDER BY 
+    collection ASC, 
+    month ASC;</code></pre>
+									<p>This query returns all collections with a monthly volume of over 50 million USD. I chose 50 million after multiple iterations of querying, as the resulting visualization shows just the highest peaks of monthly volume for NFT collections, thus giving us insight into the stronger-bidded collections.</p>
+									<p>The resulting visualization, in scatter plot form:</p>
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart10.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+									<p>Here, we can see that there are four collections with notable strength through sustained high volume: Bored Ape Yacht Club, Mutant Ape Yacht Club, Pudgy Penguins, and Azuki. These collections may be some of the fastest horses in volume when the sector as a whole regains strength.</p>
+									<p>Next, I wanted to see how deep people are dipping their toes into the NFT sector to gauge sector maturity. To do so, I queried the number of NFTs held by wallets, and grouped the wallets into separate bins based on their NFT count.</p>
+									<pre><code>WITH movements AS (
+    -- For every NFT purchase, add the number of items purchased
+    SELECT 
+        buyer AS wallet, 
+        CAST(number_of_items AS DECIMAL(38,0)) AS nft_change
+    FROM nft.trades
+    UNION ALL
+    -- For every NFT sale, subtract the number of items sold
+    SELECT 
+        seller AS wallet, 
+        -CAST(number_of_items AS DECIMAL(38,0)) AS nft_change
+    FROM nft.trades
+),
+wallet_holdings AS (
+    -- Calculate net NFTs held per wallet
+    SELECT 
+        wallet, 
+        SUM(nft_change) AS nfts_held
+    FROM movements
+    GROUP BY wallet
+)
+SELECT 
+    CASE 
+        WHEN nfts_held = 1 THEN '1'
+        WHEN nfts_held BETWEEN 2 AND 3 THEN '2-3'
+        WHEN nfts_held BETWEEN 4 AND 5 THEN '4-5'
+        WHEN nfts_held BETWEEN 6 AND 10 THEN '6-10'
+        WHEN nfts_held >= 11 THEN '11+'
+    END AS holding_range,
+    COUNT(*) AS wallet_count,
+    SUM(nfts_held) AS total_nfts_in_range
+FROM wallet_holdings
+WHERE nfts_held > 0
+GROUP BY 
+    CASE 
+        WHEN nfts_held = 1 THEN '1'
+        WHEN nfts_held BETWEEN 2 AND 3 THEN '2-3'
+        WHEN nfts_held BETWEEN 4 AND 5 THEN '4-5'
+        WHEN nfts_held BETWEEN 6 AND 10 THEN '6-10'
+        WHEN nfts_held >= 11 THEN '11+'
+    END
+ORDER BY 
+    CASE 
+        WHEN holding_range = '1' THEN 1
+        WHEN holding_range = '2-3' THEN 2
+        WHEN holding_range = '4-5' THEN 3
+        WHEN holding_range = '6-10' THEN 4
+        WHEN holding_range = '11+' THEN 5
+    END;</code></pre>
+									<p>To calculate NFT count in each wallet, I used basic addition and subtraction to the number_of_items index for each NFT trade. I chose 1, 2-3, 4-5, 6-10, and 11+ for the bins. The resulting data shows that many holders only hold 1 NFT. The bins show that regardless of if the bin size is increased from a range of 1 number to a range of 2 or 5, the resulting data shows a very large percent holding just one NFT, which you will see in the resulting visualization below. To get an accurate visual on the actual percentages, I queried the following:</p>
+									<pre><code>WITH movements AS (
+    -- For every NFT purchase, add the number of items purchased
+    SELECT 
+        buyer AS wallet, 
+        CAST(number_of_items AS DECIMAL(38,0)) AS nft_change
+    FROM nft.trades
+    UNION ALL
+    -- For every NFT sale, subtract the number of items sold
+    SELECT 
+        seller AS wallet, 
+        -CAST(number_of_items AS DECIMAL(38,0)) AS nft_change
+    FROM nft.trades
+),
+wallet_holdings AS (
+    -- Calculate net NFTs held per wallet
+    SELECT 
+        wallet, 
+        SUM(nft_change) AS nfts_held
+    FROM movements
+    GROUP BY wallet
+),
+wallet_summary AS (
+    -- Group wallets into the desired holding buckets
+    SELECT 
+        CASE 
+            WHEN nfts_held = 1 THEN '1'
+            WHEN nfts_held BETWEEN 2 AND 3 THEN '2-3'
+            WHEN nfts_held BETWEEN 4 AND 5 THEN '4-5'
+            WHEN nfts_held BETWEEN 6 AND 10 THEN '6-10'
+            WHEN nfts_held >= 11 THEN '11+'
+        END AS holding_range,
+        COUNT(*) AS wallet_count,
+        SUM(nfts_held) AS total_nfts_in_range
+    FROM wallet_holdings
+    WHERE nfts_held > 0
+    GROUP BY 
+        CASE 
+            WHEN nfts_held = 1 THEN '1'
+            WHEN nfts_held BETWEEN 2 AND 3 THEN '2-3'
+            WHEN nfts_held BETWEEN 4 AND 5 THEN '4-5'
+            WHEN nfts_held BETWEEN 6 AND 10 THEN '6-10'
+            WHEN nfts_held >= 11 THEN '11+'
+        END
+)
+SELECT 
+    holding_range,
+    wallet_count,
+    total_nfts_in_range,
+    ROUND((wallet_count * 100.0) / SUM(wallet_count) OVER (), 2) AS proportion_percentage
+FROM wallet_summary
+ORDER BY 
+    CASE 
+        WHEN holding_range = '1' THEN 1
+        WHEN holding_range = '2-3' THEN 2
+        WHEN holding_range = '4-5' THEN 3
+        WHEN holding_range = '6-10' THEN 4
+        WHEN holding_range = '11+' THEN 5
+    END;</code></pre>
+									<p>The resulting visualizations, in bar and pie chart form:</p>
+
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart11.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+										<div class="box alt">
+										<div class="row gtr-uniform">
+											<div class="col-12">
+												<span class="image fit">
+													<img src="images/Chart12.png" alt="" />
+												</span>
+											</div>
+										</div>
+										</div>
+									<p>Here, we can see that 48.3% of wallets hold only one NFT, showing signs of sector immaturity and potential massive growth to come.</p>
+									<p>All queries and visualizations for this project are available and interactive on Dune, linked below.</p>
+									<h2>related links</h2>
+										<ul class="alt">
+											<li><a href="/projects/nft-eda">project deliverable</a></li>
+											<li><a href="https://dune.com/pjmun/nft-eda">interactive dashboard (dune)</a></li>
+										</ul>
+						</div>
+					</div>
+				<!-- Footer -->
+					<footer id="footer">
+						<div class="inner">
+							<ul class="copyright">
+								<li>&copy; Pawnchy Mune-Ath 2025. All rights reserved</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+							</ul>
+						</div>
+					</footer>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
