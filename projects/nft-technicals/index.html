@@ -118,8 +118,8 @@ ORDER BY
 										</div>
 										</div>
 									<p>I used a logarithmic scaling for this graph to get a better view of the volume action. We can see that volume trends are sector-wide (OpenSea and Blur account for roughly 90% of NFT marketplace volume), so we don't need to look at specific marketplaces anymore.</p>
-									<h2>market comparisons</h2>
-									<p>Next, I wanted to compare the NFT market to DEX market. I did so by making a query for monthly volume for both.</p>
+									<h2>sector comparisons</h2>
+									<p>Next, I wanted to compare NFTs to DEX exchanges. I did so by making a query for monthly volume for both.</p>
 									<p>The query for NFT monthly volume:</p>
 									<pre><code>SELECT
     date_trunc('month', block_date) AS month,
